@@ -25,6 +25,10 @@ def download_file(url):
         logging.error(f"Error downloading file: {e}")
         raise
 
+def clean_text(text):
+    lines = text.splitlines()
+    filtered = [line.strip() for line in lines if line.strip() and not line.lower().startswith("page")]
+    return "\n".join(filtered)
 
 def extract_text_from_pdf(file_path):
     try:
