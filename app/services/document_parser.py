@@ -3,9 +3,28 @@ from docx import Document
 import email
 import os
 import logging
+import requests
+import tempfile
 
 # Set up basic logging
 logging.basicConfig(level=logging.INFO)
+
+def download_file(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+
+        suffix = os.path.splitext(url)[-1].split("?")[0]  # handles ? in URL
+        tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        tmp_file.write(response.content)
+        tmp_file.close()
+
+        logging.info(f"Downloaded file to temp: {tmp_file.name}")
+        return tmp_file.name
+    except Exception as e:
+        logging.error(f"Error downloading file: {e}")
+        raise
+
 
 def extract_text_from_pdf(file_path):
     try:
@@ -45,9 +64,15 @@ def extract_text_from_email(file_path):
         raise
 
 #main router fucntion
-def extract_text(file_path):
+def extract_text(file_path_or_url):
+    # Check if it's a URL
+    if file_path_or_url.startswith("http://") or file_path_or_url.startswith("https://"):
+        file_path = download_file(file_path_or_url)
+    else:
+        file_path = file_path_or_url
+
     ext = os.path.splitext(file_path)[1].lower()
-    logging.info(f"Extracting text from file: {file_path} (type: {ext})")
+    logging.info(f"Extracting text from: {file_path} (type: {ext})")
 
     if ext == ".pdf":
         return extract_text_from_pdf(file_path)
@@ -58,9 +83,12 @@ def extract_text(file_path):
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
+
 #testing
 if __name__ == "__main__":
-    sample_path = "sample_email.eml"  
-    result = extract_text(sample_path)
+    sample_url = "https://hackrx.blob.core.windows.net/assets/policy.pdf?sv=2023-01-03&st=2025-07-04T09%3A11%3A24Z&se=2027-07-05T09%3A11%3A00Z&sr=b&sp=r&sig=N4a9OU0w0QXO6AOIBiu4bpl7AXvEZogeT%2FjUHNO7HzQ%3D"
+    
+    result = extract_text(sample_url)
+    
     print("\n--- Extracted Text ---\n")
-    print(result)
+    print(result[:2000])  # print only first 2000 chars to avoid overload
