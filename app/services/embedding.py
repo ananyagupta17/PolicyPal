@@ -1,11 +1,17 @@
-import openai
-import os
+from sentence_transformers import SentenceTransformer
+import hashlib
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def get_embedding(text, model="text-embedding-3-small"):
-    response = openai.Embedding.create(
-        input=text,
-        model=model
-    )
-    return response["data"][0]["embedding"]
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+embedding_cache = {}
+
+def get_embedding(text):
+    text_hash = hashlib.md5(text.encode()).hexdigest()
+    if text_hash in embedding_cache:
+        return embedding_cache[text_hash]
+
+    embedding = model.encode(text, convert_to_numpy=True).tolist()
+
+    embedding_cache[text_hash] = embedding
+    return embedding
