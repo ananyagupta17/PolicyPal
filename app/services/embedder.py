@@ -1,5 +1,5 @@
 from app.services.text_chunker import chunk_text
-from app.services.embedding import get_embedding  
+from app.services.embedding import get_embedding
 from tqdm import tqdm
 
 def process_text_to_embeddings(text):
@@ -7,6 +7,10 @@ def process_text_to_embeddings(text):
     chunk_embeddings = []
 
     for chunk in tqdm(chunks, desc="Embedding chunks"):
+        chunk = chunk.strip()
+        if not chunk:
+            continue  # Skip empty chunks
+
         embedding = get_embedding(chunk)
         chunk_embeddings.append({
             "text": chunk,
