@@ -1,42 +1,45 @@
-import sys
-import os
-
-# Ensure the app/ directory is in Python path
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
 from app.services.document_parser import extract_text, clean_text
-from app.services.text_chunker import chunk_text
-from app.services.embedding import get_embedding
-from app.services.embedder import process_text_to_embeddings
+from app.services.pinecone_store import store_embeddings, generate_source_id
+from app.services.cleanup import delete_by_source, delete_all
+import sys
 
+def run_pipeline_from_url(url):
+    try:
+        print("🚀 Starting pipeline...")
 
-def main(doc_url):
-    print("📥 Downloading and extracting text...")
-    raw_text = extract_text(doc_url)
+        # Step 1: Extract raw text
+        raw_text = extract_text(url)
+        print(f"Extracted text length: {len(raw_text)}")
 
-    print("\n🧹 Cleaning text...")
-    cleaned = clean_text(raw_text)
-    print(f"✅ Cleaned text length: {len(cleaned)} characters\n")
+        # Step 2: Clean the text
+        cleaned = clean_text(raw_text)
+        print(f"Cleaned text length: {len(cleaned)}")
 
-    print("🔪 Chunking text...")
-    chunks = chunk_text(cleaned)
-    avg_len = sum(len(c) for c in chunks) // len(chunks)
-    print(f"✅ Chunked into {len(chunks)} chunks | Avg chunk length: {avg_len} characters\n")
+        # Step 3: Generate a unique source ID from the URL
+        source_id = generate_source_id(url)
+        print(f"Generated source_id: {source_id}")
 
-    print("🔎 Generating embeddings...")
-    embeddings = process_text_to_embeddings(cleaned)
-    print(f"\n✅ Generated embeddings for {len(embeddings)} chunks.")
+        # Step 4: Store in Pinecone
+        print("Storing embeddings in Pinecone...")
+        store_embeddings(cleaned, source_id=source_id)
+        print("Done storing in Pinecone.")
 
-    print("\n📌 Sample output:")
-    for i, chunk_data in enumerate(embeddings[:2]):
-        print(f"\nChunk {i+1}:")
-        print(f"Text: {chunk_data['text'][:150]}...")
-        print(f"Embedding (first 5 dims): {chunk_data['embedding'][:5]}")
+        # Step 5: Delete after use (cleanup)
+        print("Deleting embeddings after processing...")
+        delete_by_source(source_id)
+        print(f"Deleted all embeddings with source_id: {source_id}")
+
+        #clear storage
+        # print("Deleting all embeddings")
+        # delete_all()
+        # print("delete all embeddings")
+
+    except Exception as e:
+        print(f"❌ Pipeline failed: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python test_pipeline.py <document_url>")
-        sys.exit(1)
-
-    document_url = sys.argv[1]
-    main(document_url)
+    else:
+        url = sys.argv[1]
+        run_pipeline_from_url(url)
