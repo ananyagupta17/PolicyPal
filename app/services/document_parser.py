@@ -6,10 +6,10 @@ import logging
 import requests
 import tempfile
 
-# Set up basic logging
 logging.basicConfig(level=logging.INFO)
 
-def download_file(url):
+def download_file(url: str) -> str:
+    """Download remote file into a temp path and return the local path."""
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -25,31 +25,33 @@ def download_file(url):
         logging.error(f"Error downloading file: {e}")
         raise
 
-def clean_text(text):
+def clean_text(text: str) -> str:
+    """Basic cleanup: strip blank lines; drop lines starting with 'page'."""
     lines = text.splitlines()
     filtered = [line.strip() for line in lines if line.strip() and not line.lower().startswith("page")]
     return "\n".join(filtered)
 
-def extract_text_from_pdf(file_path):
+def extract_text_from_pdf(file_path: str) -> str:
+    """Extract plain text from PDF using PyMuPDF, concatenating page text."""
     try:
-        text = ""
+        texts = []
         with fitz.open(file_path) as doc:
             for page in doc:
-                text += page.get_text()
-        return text.strip()
+                texts.append(page.get_text("text"))
+        return clean_text("\n".join(texts)).strip()
     except Exception as e:
         logging.error(f"Error extracting PDF text: {e}")
         raise
 
-def extract_text_from_docx(file_path):
+def extract_text_from_docx(file_path: str) -> str:
     try:
         doc = Document(file_path)
-        return "\n".join([para.text for para in doc.paragraphs]).strip()
+        return clean_text("\n".join([para.text for para in doc.paragraphs])).strip()
     except Exception as e:
         logging.error(f"Error extracting DOCX text: {e}")
         raise
 
-def extract_text_from_email(file_path):
+def extract_text_from_email(file_path: str) -> str:
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             msg = email.message_from_file(f)
@@ -59,18 +61,20 @@ def extract_text_from_email(file_path):
             if part.get_content_type() == "text/plain":
                 try:
                     parts.append(part.get_payload(decode=True).decode(errors="ignore"))
-                except:
+                except Exception:
                     parts.append(part.get_payload())
 
-        return "\n".join(parts).strip()
+        return clean_text("\n".join(parts)).strip()
     except Exception as e:
         logging.error(f"Error extracting email text: {e}")
         raise
 
-#main router fucntion
-def extract_text(file_path_or_url):
-    # Check if it's a URL
-    if file_path_or_url.startswith("http://") or file_path_or_url.startswith("https://"):
+def extract_text(file_path_or_url: str) -> str:
+    """
+    Router: accepts a local path or URL; returns cleaned plain text.
+    """
+    # URL → download to temp
+    if file_path_or_url.startswith(("http://", "https://")):
         file_path = download_file(file_path_or_url)
     else:
         file_path = file_path_or_url
@@ -87,12 +91,9 @@ def extract_text(file_path_or_url):
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
-
-#testing
+# Quick local test
 if __name__ == "__main__":
     sample_url = "https://hackrx.blob.core.windows.net/assets/policy.pdf?sv=2023-01-03&st=2025-07-04T09%3A11%3A24Z&se=2027-07-05T09%3A11%3A00Z&sr=b&sp=r&sig=N4a9OU0w0QXO6AOIBiu4bpl7AXvEZogeT%2FjUHNO7HzQ%3D"
-    
     result = extract_text(sample_url)
-    
-    print("\n--- Extracted Text ---\n")
-    print(result[:2000])  # print only first 2000 chars to avoid overload
+    print("\n--- Extracted Text (first 2000 chars) ---\n")
+    print(result[:2000])
