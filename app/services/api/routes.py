@@ -1,11 +1,13 @@
 from fastapi import APIRouter, HTTPException, Header
 from typing import List
 from pydantic import BaseModel
+import os
 
 from app.services.pipeline_qa import answer_questions
 from app.services.pinecone_store import ingest_document
 
 router = APIRouter()
+BEARER_TOKEN = os.getenv("BEARER_TOKEN") 
 
 class DocumentRequest(BaseModel):
     documents: str
@@ -27,7 +29,7 @@ async def process_document(request: DocumentRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ✅ HackRx-specific route with Bearer token validation
+# HackRx-specific route with Bearer token validation using ENV
 @router.post("/hackrx/run", response_model=DocumentResponse)
 async def run_hackrx_submission(
     request: DocumentRequest,
@@ -37,7 +39,7 @@ async def run_hackrx_submission(
         raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
 
     token = authorization.split("Bearer ")[-1]
-    if token != "255adb3cbeaebcc2ff0f45737e193a37a49e6cb3304c8593490e295fdea92448":
+    if token != BEARER_TOKEN:
         raise HTTPException(status_code=403, detail="Invalid token")
 
     try:
