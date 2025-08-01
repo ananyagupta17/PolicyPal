@@ -1,15 +1,27 @@
 from fastapi import APIRouter, HTTPException
-from app.models.response_model import DocumentRequest, DocumentResponse
+from typing import List
+from pydantic import BaseModel
+
 from app.services.pipeline_qa import answer_questions
 from app.services.pinecone_store import ingest_document
 
 router = APIRouter()
 
+
+class DocumentRequest(BaseModel):
+    documents: str
+    questions: List[str]
+
+
+class DocumentResponse(BaseModel):
+    answers: List[str]
+
+
 @router.post("/process-document", response_model=DocumentResponse)
 async def process_document(request: DocumentRequest):
     try:
         # 1. Ingest the document (extract, chunk, embed)
-        source_id = ingest_document(request.documents)
+        ingest_document(request.documents)
 
         # 2. Use the QA pipeline to get answers
         answers = answer_questions(
@@ -18,10 +30,7 @@ async def process_document(request: DocumentRequest):
             top_k=8
         )
 
-        # 3. Return the answers (and optionally the source_id)
-        return DocumentResponse(
-            text=source_id,  # or change to extracted_text if needed
-            answers=answers
-        )
+        # 3. Return only the answers
+        return DocumentResponse(answers=answers)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
