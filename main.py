@@ -1,17 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.services.api.routes import router as upload_router
+from app.services.api.routes import router as pipeline_router
+from dotenv import load_dotenv
 
-app = FastAPI()
+load_dotenv()
 
-# Enable CORS if needed
+app = FastAPI(
+    title="Policy QA Pipeline",
+    description="Extracts document text and answers user questions using a retrieval-augmented QA system.",
+    version="1.0.0"
+)
+
+# Enable CORS (adjust origins for production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # update to specific domains in prod
+    allow_origins=["*"],  # Replace with specific frontend domain in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register routes
-app.include_router(upload_router)
+# Register the router for document processing and QA
+app.include_router(pipeline_router, prefix="/api", tags=["Pipeline"])

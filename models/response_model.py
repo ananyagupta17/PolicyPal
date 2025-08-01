@@ -6,7 +6,7 @@ class DocumentRequest(BaseModel):
     questions: List[str]
 
 class DocumentResponse(BaseModel):
-    extracted_text: str
-    parsed_fields: List[Dict[str, Union[str, None]]]
-
-
+    text: str  # Raw extracted text from the document
+    context_chunks: List[str]  # Retrieved chunks from Pinecone
+    prompt: str  # Prompt sent to the LLM
+    llm_response: Union[Dict[str, Union[str, Dict]], List[Dict[str, Union[str, Dict]]]]  # Answer JSON from the model
