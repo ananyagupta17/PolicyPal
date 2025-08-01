@@ -20,5 +20,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register the router for document processing and QA
-app.include_router(pipeline_router, prefix="/api", tags=["Pipeline"])
+# ✅ Updated prefix to match HackRx requirement
+app.include_router(pipeline_router, prefix="/api/v1", tags=["Pipeline"])
