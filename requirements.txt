@@ -12,8 +12,9 @@ torch==2.7.1
 
 # Embeddings + Semantic Search
 sentence-transformers==5.0.0
-scikit-learn==1.6.1
-numpy==2.0.2
+scikit-learn==1.4.2
+numpy==1.26.4
+
 
 # Vector DB
 pinecone==7.3.0
