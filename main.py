@@ -2,9 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.api.routes import router as pipeline_router
 from dotenv import load_dotenv
+import os 
 
-load_dotenv()
-
+load_dotenv()  
+print("ENV token loaded:", os.getenv("BEARER_TOKEN"))
 app = FastAPI(
     title="Policy QA Pipeline",
     description="Extracts document text and answers user questions using a retrieval-augmented QA system.",
