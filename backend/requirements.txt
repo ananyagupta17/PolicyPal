@@ -4,12 +4,6 @@ uvicorn==0.35.0
 python-dotenv==1.1.1
 orjson==3.11.1
 
-# Hugging Face Transformers
-transformers==4.54.0
-tokenizers==0.21.2
-huggingface-hub==0.34.1
-torch==2.7.1
-
 # Embeddings + Semantic Search
 sentence-transformers==5.0.0
 scikit-learn==1.6.1
@@ -18,7 +12,7 @@ numpy==2.0.2
 # Vector DB
 pinecone==7.3.0
 
-# LangChain
+# LangChain (for optional chunking + loading)
 langchain==0.3.27
 langchain-text-splitters==0.3.9
 
