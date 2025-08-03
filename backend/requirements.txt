@@ -5,9 +5,8 @@ python-dotenv==1.1.1
 orjson==3.11.1
 
 # Embeddings + Semantic Search
-sentence-transformers==5.0.0
-scikit-learn==1.6.1
-numpy==2.0.2
+# scikit-learn==1.6.1
+# numpy==2.0.2
 
 # Vector DB
 pinecone==7.3.0
