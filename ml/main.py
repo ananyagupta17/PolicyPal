@@ -5,7 +5,7 @@ from ml.pipeline.pipeline_qa import answer_questions
 
 app = FastAPI(
     title="ML QA Microservice",
-    description="Handles prompt building, LLM calls, and fallback heuristics for QA.",
+    description="Handles retrieval, Gemini prompt building, LLM call, and fallback for document QA.",
     version="1.0.0"
 )
 
@@ -27,4 +27,4 @@ def get_answers(payload: QARequest):
         )
         return QAResponse(answers=answers)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to get answers: {e}")

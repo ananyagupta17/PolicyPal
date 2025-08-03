@@ -1,21 +1,24 @@
-from backend.services.pinecone_store import ingest_document, generate_source_id
+from backend.services.pinecone_store import ingest_document
 from ml.pipeline.pipeline_qa import answer_questions
 import sys
 
 def run_pipeline_from_url(url, questions):
     try:
-        print("Starting pipeline...")
+        print("🔄 Starting pipeline...")
 
         # Step 1–4: Ingest document (extract, chunk, embed, store)
         source_id = ingest_document(url)
-        print(f"Document ingested. source_id / namespace: {source_id}")
+        print(f"✅ Document ingested. Source ID / namespace: {source_id}")
 
-        # Step 5–7: Answer questions (retrieval + LLM/fallback)
+        # Step 5–7: Answer questions (retrieval + Gemini / fallback)
         answers = answer_questions(document_url=url, questions=questions, top_k=8)
-        print({"answers": answers})
+
+        print("🧠 Answers:")
+        for i, (q, a) in enumerate(zip(questions, answers), 1):
+            print(f"{i}. Q: {q}\n   A: {a}\n")
 
     except Exception as e:
-        print(f"Pipeline failed: {e}")
+        print(f"❌ Pipeline failed: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
