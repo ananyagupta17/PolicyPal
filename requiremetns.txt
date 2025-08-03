@@ -1,7 +1,11 @@
 # FastAPI + Server
 fastapi==0.116.1
 uvicorn==0.35.0
+
+# Environment Variables
 python-dotenv==1.1.1
+
+# JSON Parsing
 orjson==3.11.1
 
 # Embeddings + Semantic Search
@@ -9,13 +13,17 @@ orjson==3.11.1
 # numpy==2.0.2
 
 # Vector DB
-pinecone==7.3.0
+pinecone-client==3.0.2  # ✅ correct name for pip, not 'pinecone'
 
-# LangChain (for optional chunking + loading)
+# LLMs
+google-generativeai==0.5.4  # Gemini
+cohere==5.3.3               # Optional: if you're using Cohere embeddings
+
+# LangChain (for chunking/loading etc.)
 langchain==0.3.27
 langchain-text-splitters==0.3.9
 
-# Document parsing
+# Document Parsing
 PyMuPDF==1.26.3       # PDFs
 python-docx==1.2.0    # Word docs
 lxml==6.0.0           # HTML/EML
