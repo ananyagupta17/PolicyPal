@@ -1,0 +1,30 @@
+# FastAPI + Server
+fastapi==0.116.1
+uvicorn==0.35.0
+
+# Environment Variables
+python-dotenv==1.1.1
+
+# JSON Parsing
+orjson==3.11.1
+
+# Vector DB
+pinecone-client==3.0.2  
+
+# LLMs
+google-generativeai==0.5.4  # Gemini
+
+# LangChain (for chunking/loading etc.)
+langchain==0.3.27
+langchain-text-splitters==0.3.9
+
+# Document Parsing
+PyMuPDF==1.26.3       # PDFs
+python-docx==1.2.0    # Word docs
+lxml==6.0.0           # HTML/EML
+
+# Utilities
+tqdm==4.67.1
+requests==2.32.4
+pydantic==2.11.7
+typing_extensions==4.14.1
