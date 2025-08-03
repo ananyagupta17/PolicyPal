@@ -9,8 +9,7 @@ python-dotenv==1.1.1
 orjson==3.11.1
 
 # Vector DB
-pinecone-client==2.2.4
-
+pinecone-client==3.0.2  
 
 # LLMs
 google-generativeai==0.5.4  # Gemini
