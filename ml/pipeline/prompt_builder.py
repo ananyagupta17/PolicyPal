@@ -1,29 +1,25 @@
 def build_llm_prompt(context_chunks, questions):
     """
-    Builds a structured prompt for Gemini to answer questions based on document chunks.
-    Ensures JSON-only response with no extra text.
+    Build a prompt that asks Gemini to answer questions clearly and concisely
+    based ONLY on provided context chunks.
     """
+
     context = "\n\n".join([chunk.get("text", "") for chunk in context_chunks])
     numbered_qs = "\n".join([f"{i+1}. {q}" for i, q in enumerate(questions)])
 
     return f"""
-You are a helpful assistant. Use ONLY the excerpts below to answer the following questions.
+You are a helpful, expert assistant answering questions strictly based on the provided policy excerpts below.
 
-If the answer is not clearly mentioned, respond with:
-"I could not find this in the document."
+Please provide clear, concise, and natural-sounding one-line answers for each question. Use your understanding to summarize and rephrase the relevant information accurately — do NOT just copy-paste raw text fragments.
 
-Questions:
-{numbered_qs}
+Answer using ONLY the information contained in the excerpts, which are ordered from most relevant to least relevant.
 
-Policy Excerpts (most relevant first):
-{context}
+If the answer is not explicitly found in the excerpts, respond exactly with:
+"I could not find this information in the document."
 
-Instructions:
-- Answer concisely and accurately.
-- Quote all figures/durations as-is.
-- Do NOT make up information.
-- Do NOT provide explanations or headings.
-- Respond in the following strict JSON format:
+Do NOT add explanations or extra details beyond the answer.
+
+Return your answers in the following JSON format ONLY (no extra text):
 
 {{
   "answers": [
@@ -33,5 +29,9 @@ Instructions:
   ]
 }}
 
-Return only this JSON. Nothing else.
+Questions:
+{numbered_qs}
+
+Policy Excerpts:
+{context}
 """.strip()
