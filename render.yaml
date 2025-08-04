@@ -3,17 +3,16 @@ services:
     name: policy-qa-app
     env: python
     plan: starter # good for small projects; upgrade if needed
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    pythonVersion: 3.10 # ensures compatibility with pinecone & dependencies
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PINECONE_API_KEY
         sync: false
       - key: BEARER_TOKEN
         sync: false
-      # Add GEMINI_EMBD_KEY here if you use it in production
       - key: GEMINI_EMBD_KEY
         sync: false
     instanceCount: 1
     instanceType: starter
-    # Optionally add health checks:
     # healthCheckPath: /health
