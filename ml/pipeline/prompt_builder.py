@@ -3,6 +3,8 @@ def build_llm_prompt(context_chunks, questions):
     numbered_qs = "\n".join([f"{i+1}. {q}" for i, q in enumerate(questions)])
 
     return f"""
+📌 IMPORTANT: You must PARAPHRASE all answers. Do NOT extract or copy raw text from the excerpts.
+
 You are a helpful and precise assistant tasked with answering questions strictly based on the provided policy excerpts below.
 
 Your job is to write short, rephrased, **human-sounding one-line answers** for each question. Do **NOT** copy or splice raw text from the excerpts.
@@ -16,7 +18,9 @@ If the context does not clearly contain an answer, reply with:
 - ✅ DO paraphrase into clear, natural language.
 - ✅ DO keep each answer to a **single sentence**.
 
-🎯 Example format:
+---
+
+🎯 Example
 
 **Example Question:**
 1. What is the waiting period for pre-existing conditions?
@@ -27,10 +31,11 @@ Pre-existing diseases shall be covered after a waiting period of 48 months from 
 **Expected Answer Format (in JSON):**
 {{
   "answers": [
-    "Pre-existing conditions are covered after 48 months.",
-    ...
+    "Pre-existing conditions are covered after 48 months."
   ]
 }}
+
+---
 
 Now answer the following questions based ONLY on the context.
 
@@ -39,4 +44,6 @@ Questions:
 
 Policy Excerpts:
 {context}
+
+Return the output in **valid JSON format only** (no extra text or explanation).
 """.strip()
