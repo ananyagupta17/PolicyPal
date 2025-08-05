@@ -1,37 +1,49 @@
 def build_llm_prompt(context_chunks, questions):
-    """
-    Build a prompt that asks Gemini to answer questions clearly and concisely
-    based ONLY on provided context chunks.
-    """
-
     context = "\n\n".join([chunk.get("text", "") for chunk in context_chunks])
     numbered_qs = "\n".join([f"{i+1}. {q}" for i, q in enumerate(questions)])
 
     return f"""
-You are a helpful, expert assistant answering questions strictly based on the provided policy excerpts below.
+📌 IMPORTANT: You must PARAPHRASE all answers. Do NOT extract or copy raw text from the excerpts.
 
-Please provide clear, concise, and natural-sounding one-line answers for each question. Use your understanding to summarize and rephrase the relevant information accurately — do NOT just copy-paste raw text fragments.
+You are a helpful and precise assistant tasked with answering questions strictly based on the provided policy excerpts below.
 
-Answer using ONLY the information contained in the excerpts, which are ordered from most relevant to least relevant.
+Your job is to write short, rephrased, **human-sounding one-line answers** for each question. Do **NOT** copy or splice raw text from the excerpts.
 
-If the answer is not explicitly found in the excerpts, respond exactly with:
+If the context does not clearly contain an answer, reply with:
 "I could not find this information in the document."
 
-Do NOT add explanations or extra details beyond the answer.
+⚠️ Instructions:
+- ❌ Do NOT copy exact phrases or sentences from the excerpts.
+- ❌ Do NOT include explanations, assumptions, or reasoning.
+- ✅ DO paraphrase into clear, natural language.
+- ✅ DO keep each answer to a **single sentence**.
 
-Return your answers in the following JSON format ONLY (no extra text):
+---
 
+🎯 Example
+
+**Example Question:**
+1. What is the waiting period for pre-existing conditions?
+
+**Example Context:**
+Pre-existing diseases shall be covered after a waiting period of 48 months from the date of commencement of the policy.
+
+**Expected Answer Format (in JSON):**
 {{
   "answers": [
-    "Answer to question 1",
-    "Answer to question 2",
-    ...
+    "Pre-existing conditions are covered after 48 months."
   ]
 }}
+
+---
+
+Now answer the following questions based ONLY on the context.
 
 Questions:
 {numbered_qs}
 
 Policy Excerpts:
 {context}
+
+Return the output in **valid JSON format only** (no extra text or explanation).
 """.strip()
