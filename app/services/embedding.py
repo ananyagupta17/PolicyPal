@@ -1,20 +1,31 @@
-from sentence_transformers import SentenceTransformer
+import os
 import hashlib
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-# 768-dim embeddings for all-mpnet-base-v2
-model = SentenceTransformer("all-mpnet-base-v2")
+load_dotenv()
 
-# Tiny in-memory cache to avoid recomputing the same chunk
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+EMBEDDING_MODEL = "models/text-embedding-004"  # 768-dim, free tier
+DIMENSION = 768
+
 embedding_cache = {}
 
 def get_embedding(text: str) -> list[float]:
     """
-    Return a 768-dim embedding for the given text (as Python list[float]).
-    Uses an md5-based cache for repeated inputs.
+    Return a 768-dim embedding using Gemini text-embedding-004.
+    Uses md5-based in-memory cache for repeated inputs.
     """
     text_hash = hashlib.md5(text.encode()).hexdigest()
     if text_hash in embedding_cache:
         return embedding_cache[text_hash]
-    embedding = model.encode(text, convert_to_numpy=True).tolist()
+
+    result = genai.embed_content(
+        model=EMBEDDING_MODEL,
+        content=text,
+        task_type="retrieval_document"
+    )
+    embedding = result["embedding"]
     embedding_cache[text_hash] = embedding
     return embedding
