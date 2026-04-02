@@ -1,36 +1,80 @@
 from fastapi import APIRouter, HTTPException
-from typing import List
 from pydantic import BaseModel
+from typing import List, Dict
 
-from app.services.pipeline_qa import answer_questions
 from app.services.pinecone_store import ingest_document
+from app.services.pipeline_qa import answer_question
 
 router = APIRouter()
 
 
-class DocumentRequest(BaseModel):
-    documents: str
-    questions: List[str]
+# --- Request / Response Models ---
+# These define the shape of data coming in and going out
+# Pydantic validates them automatically — wrong types = instant 422 error
+
+class UploadRequest(BaseModel):
+    document_url: str          # e.g. "https://example.com/policy.pdf"
+
+class UploadResponse(BaseModel):
+    session_id: str            # md5 hash of the URL, used as Pinecone namespace
+    message: str               # confirmation message
 
 
-class DocumentResponse(BaseModel):
-    answers: List[str]
+class ChatRequest(BaseModel):
+    session_id: str            # which document to query
+    message: str               # the user's question
+    chat_history: List[Dict]   # previous turns: [{"role": "user", "content": "..."}]
+
+class ChatResponse(BaseModel):
+    answer: str                # Gemini's response
+    chat_history: List[Dict]   # updated history including this turn
 
 
-@router.post("/process-document", response_model=DocumentResponse)
-async def process_document(request: DocumentRequest):
+# --- Endpoints ---
+
+@router.post("/upload", response_model=UploadResponse)
+async def upload_document(request: UploadRequest):
+    """
+    Ingests a document from a URL into Pinecone.
+    Steps: download → extract text → chunk → embed → store.
+    Returns a session_id the frontend uses for all subsequent chat requests.
+    """
     try:
-        # 1. Ingest the document (extract, chunk, embed)
-        ingest_document(request.documents)
+        session_id = ingest_document(request.document_url)
+        return UploadResponse(
+            session_id=session_id,
+            message="Document ingested successfully. You can now ask questions."
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ingestion failed: {str(e)}")
 
-        # 2. Use the QA pipeline to get answers
-        answers = answer_questions(
-            document_url=request.documents,
-            questions=request.questions,
-            top_k=8
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """
+    Answers a question about the uploaded document.
+    Uses the session_id to find the right Pinecone namespace,
+    retrieves relevant chunks, and asks Gemini to answer.
+    Chat history is passed in and returned updated — the frontend
+    is responsible for storing and sending history each time.
+    """
+    try:
+        answer = answer_question(
+            document_url="",           # not needed — session_id carries the namespace
+            question=request.message,
+            chat_history=request.chat_history,
+            session_id=request.session_id,  # pass directly
         )
 
-        # 3. Return only the answers
-        return DocumentResponse(answers=answers)
+        # Append this turn to history and return it
+        updated_history = request.chat_history + [
+            {"role": "user", "content": request.message},
+            {"role": "assistant", "content": answer},
+        ]
+
+        return ChatResponse(answer=answer, chat_history=updated_history)
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
