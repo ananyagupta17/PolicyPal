@@ -1,72 +1,54 @@
+import os
 import hashlib
-import json
 from typing import List, Dict
+import google.generativeai as genai
+from dotenv import load_dotenv
 
-from app.services.retrieval import semantic_search  # your retrieval
-from app.services.huggingface_client import call_huggingface_llm  # LLM call
-from app.utils.prompt_builder import build_llm_prompt  # prompt builder
-from app.services.qa import answer_one_question  # heuristic fallback
+from app.services.retrieval import semantic_search
+from app.utils.prompt_builder import build_chat_prompt
+
+load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# We use gemini-1.5-flash — fast, free tier, great for QA
+model = genai.GenerativeModel("gemini-1.5-flash")
 
 
-def answer_questions(
+def answer_question(
     document_url: str,
-    questions: List[str],
+    question: str,
+    chat_history: List[Dict],  # list of {"role": "user"/"assistant", "content": "..."}
     top_k: int = 8,
-) -> List[str]:
+) -> str:
     """
-    Full question-answer pipeline: retrieval + LLM + fallback.
-    Returns a list of answers aligned with `questions`.
-    """
-    source_id = hashlib.md5(document_url.encode()).hexdigest()
-    namespace = source_id  # you used namespace-per-document in upsert
+    Given a document URL, a user question, and the conversation
+    history so far, retrieve relevant chunks and ask Gemini to answer.
 
-    # 1. Retrieve shared context for all questions (optionally could do per-question)
-    combined_query = " ".join(questions)
+    Chat history gives Gemini memory — it can handle follow-up questions
+    like "what about for senior citizens?" without losing context.
+    """
+    # 1. Generate the same source_id used during ingestion
+    #    This tells us which Pinecone namespace to search in
+    source_id = hashlib.md5(document_url.encode()).hexdigest()
+
+    # 2. Retrieve the most relevant chunks for this question
     context_chunks = semantic_search(
-        combined_query,
+        question,
         top_k=top_k,
-        namespace=namespace,
+        namespace=source_id,
         fltr={"source": {"$eq": source_id}},
     )
 
-    # 2. Build LLM prompt with those chunks and the list of questions
-    prompt = build_llm_prompt(context_chunks, questions)
+    # 3. Build the prompt — context + chat history + new question
+    prompt = build_chat_prompt(
+        context_chunks=context_chunks,
+        chat_history=chat_history,
+        question=question,
+    )
 
-    # 3. Call the LLM
+    # 4. Call Gemini and get the answer
     try:
-        raw = call_huggingface_llm(prompt)
+        response = model.generate_content(prompt)
+        return response.text.strip()
     except Exception as e:
-        # LLM call failed: fallback to heuristics per question
-        return [
-            answer_one_question(
-                q,
-                semantic_search(
-                    q,
-                    top_k=top_k,
-                    namespace=namespace,
-                    fltr={"source": {"$eq": source_id}},
-                ),
-            )
-            for q in questions
-        ]
-
-    # 4. Try to parse the LLM JSON output
-    try:
-        parsed = json.loads(raw.strip())
-        answers = parsed.get("answers")
-        if isinstance(answers, list) and len(answers) == len(questions):
-            return answers
-    except json.JSONDecodeError:
-        pass  # will fall back below
-
-    # 5. Fallback if JSON was invalid or misaligned
-    fallback_answers = []
-    for q in questions:
-        retrieved = semantic_search(
-            q,
-            top_k=top_k,
-            namespace=namespace,
-            fltr={"source": {"$eq": source_id}},
-        )
-        fallback_answers.append(answer_one_question(q, retrieved))
-    return fallback_answers
+        return f"Sorry, I couldn't generate an answer. Error: {str(e)}"
