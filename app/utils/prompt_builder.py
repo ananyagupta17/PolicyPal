@@ -1,31 +1,57 @@
-def build_llm_prompt(context_chunks, questions):
-    context = "\n\n".join([chunk.get("text", "") for chunk in context_chunks])
-    numbered_qs = "\n".join([f"{i+1}. {q}" for i, q in enumerate(questions)])
+from typing import List, Dict
 
-    return f"""
-You answer strictly from the provided policy excerpts.
-If the document does not specify, say: "I could not find this in the document."
 
-Questions:
-{numbered_qs}
+def build_chat_prompt(
+    context_chunks: List[Dict],
+    chat_history: List[Dict],
+    question: str,
+) -> str:
+    """
+    Builds a prompt for Gemini that includes:
+    - Retrieved policy excerpts (the RAG context)
+    - Conversation history (so follow-up questions work)
+    - The current question
+    - Strict instructions to prevent hallucination
+    """
 
-Policy excerpts (most relevant first):
+    # --- 1. Format the retrieved chunks ---
+    # These are the most semantically similar chunks from Pinecone
+    # We join them as numbered excerpts so Gemini can reference them
+    if context_chunks:
+        context = "\n\n".join([
+            f"[Excerpt {i+1}]: {chunk.get('text', '')}"
+            for i, chunk in enumerate(context_chunks)
+        ])
+    else:
+        context = "No relevant excerpts found."
+
+    # --- 2. Format the conversation history ---
+    # We replay previous turns so Gemini understands follow-up questions
+    # e.g. "what about for dependents?" only makes sense with prior context
+    history_text = ""
+    if chat_history:
+        turns = []
+        for turn in chat_history:
+            role = "User" if turn["role"] == "user" else "Assistant"
+            turns.append(f"{role}: {turn['content']}")
+        history_text = "\n".join(turns)
+
+    # --- 3. Build the full prompt ---
+    prompt = f"""You are PolicyPal, an AI assistant that answers questions strictly based on policy documents.
+
+POLICY EXCERPTS (retrieved based on the question):
 {context}
 
-Instructions:
-- Be brief and precise.
-- Quote figures/durations exactly as written (e.g., "two (2) years", "15% of SI").
-- Do not invent information not present in the excerpts.
+{"CONVERSATION SO FAR:" + chr(10) + history_text if history_text else ""}
 
-Respond only in the following JSON format:
+CURRENT QUESTION: {question}
 
-{{
-  "answers": [
-    "Answer to question 1",
-    "Answer to question 2",
-    ...
-  ]
-}}
-
-Do not include any text or explanation outside the JSON.
+INSTRUCTIONS:
+- Answer using ONLY the policy excerpts above.
+- If the answer is not in the excerpts, say exactly: "I could not find this information in the document."
+- Be concise and precise. Quote figures and durations exactly as written.
+- Do not make up or infer information not present in the excerpts.
+- If the question refers to something from the conversation history, use that context.
 """.strip()
+
+    return prompt
