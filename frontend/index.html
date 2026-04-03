@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PolicyPal</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 780px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: #1a73e8;
+      color: white;
+      padding: 24px 28px;
+    }
+
+    .header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 0.9rem;
+      opacity: 0.85;
+    }
+
+    /* Upload section */
+    .upload-section {
+      padding: 24px 28px;
+      border-bottom: 1px solid #e8eaed;
+      background: #fafafa;
+    }
+
+    .upload-section label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 8px;
+    }
+
+    .upload-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .upload-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .upload-row input:focus { border-color: #1a73e8; }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    .btn-primary { background: #1a73e8; color: white; }
+    .btn-primary:hover { background: #1558b0; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      margin-top: 10px;
+      font-size: 0.83rem;
+      min-height: 18px;
+    }
+
+    .status.success { color: #188038; }
+    .status.error   { color: #c5221f; }
+    .status.loading { color: #1a73e8; }
+
+    /* Chat section */
+    .chat-section {
+      display: flex;
+      flex-direction: column;
+      height: 480px;
+    }
+
+    .chat-window {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #aaa;
+      margin: auto;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .empty-state span {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    /* Chat bubbles */
+    .bubble-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .bubble-row.user  { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .avatar.bot  { background: #e8f0fe; color: #1a73e8; }
+    .avatar.user { background: #fce8e6; color: #c5221f; }
+
+    .bubble {
+      max-width: 70%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+
+    .bubble.bot {
+      background: #f1f3f4;
+      color: #202124;
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble.user {
+      background: #1a73e8;
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .bubble.thinking {
+      color: #888;
+      font-style: italic;
+    }
+
+    /* Input row */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      padding: 16px 28px;
+      border-top: 1px solid #e8eaed;
+      background: white;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 11px 16px;
+      border: 1px solid #dadce0;
+      border-radius: 24px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .input-row input:focus { border-color: #1a73e8; }
+
+    .btn-send {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, opacity 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-send:hover   { background: #1558b0; }
+    .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>📄 PolicyPal</h1>
+    <p>Upload a policy document and chat with it using AI</p>
+  </div>
+
+  <!-- Upload -->
+  <div class="upload-section">
+    <label>Document URL (PDF, DOCX, or EML)</label>
+    <div class="upload-row">
+      <input type="text" id="docUrl"
+        placeholder="https://example.com/policy.pdf" />
+      <button class="btn btn-primary" id="uploadBtn" onclick="uploadDoc()">
+        Upload
+      </button>
+    </div>
+    <div class="status" id="uploadStatus"></div>
+  </div>
+
+  <!-- Chat -->
+  <div class="chat-section">
+    <div class="chat-window" id="chatWindow">
+      <div class="empty-state">
+        <span>💬</span>
+        Upload a document above to start chatting
+      </div>
+    </div>
+    <div class="input-row">
+      <input type="text" id="userInput"
+        placeholder="Ask a question about your document..."
+        onkeydown="if(event.key==='Enter') sendMessage()"
+        disabled />
+      <button class="btn-send" id="sendBtn" onclick="sendMessage()" disabled>
+        ➤
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let sessionId = null;
+  let chatHistory = [];
+  let isLoading = false;
+
+  // ── Upload ──────────────────────────────────────────────
+  async function uploadDoc() {
+    const url = document.getElementById('docUrl').value.trim();
+    if (!url) return setStatus('Please enter a document URL.', 'error');
+
+    setStatus('Uploading and processing document... this may take 20–30 seconds.', 'loading');
+    setUploadDisabled(true);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_url: url })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+
+      sessionId = data.session_id;
+      chatHistory = [];
+
+      setStatus('✅ Document ready! Start asking questions below.', 'success');
+      enableChat();
+      clearChat();
+      addBubble('bot', "Hi! I've read your document. What would you like to know?");
+
+    } catch (err) {
+      setStatus(`❌ ${err.message}`, 'error');
+      setUploadDisabled(false);
+    }
+  }
+
+  // ── Chat ────────────────────────────────────────────────
+  async function sendMessage() {
+    if (isLoading || !sessionId) return;
+    const input = document.getElementById('userInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = '';
+    isLoading = true;
+    setSendDisabled(true);
+
+    addBubble('user', message);
+    const thinkingEl = addBubble('bot', 'Thinking...', true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId,
+          message: message,
+          chat_history: chatHistory
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Chat failed');
+
+      thinkingEl.classList.remove('thinking');
+      thinkingEl.textContent = data.answer;
+      chatHistory = data.chat_history;
+
+    } catch (err) {
+      thinkingEl.classList.remove('thinking');
+      thinkingEl.textContent = `Sorry, something went wrong: ${err.message}`;
+    } finally {
+      isLoading = false;
+      setSendDisabled(false);
+      document.getElementById('userInput').focus();
+    }
+  }
+
+  // ── Helpers ─────────────────────────────────────────────
+  function addBubble(role, text, isThinking = false) {
+    const window = document.getElementById('chatWindow');
+
+    // Remove empty state if present
+    const empty = window.querySelector('.empty-state');
+    if (empty) empty.remove();
+
+    const row = document.createElement('div');
+    row.className = `bubble-row ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `avatar ${role}`;
+    avatar.textContent = role === 'bot' ? 'AI' : 'You';
+
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role}${isThinking ? ' thinking' : ''}`;
+    bubble.textContent = text;
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    window.appendChild(row);
+    window.scrollTop = window.scrollHeight;
+
+    return bubble; // return so we can update "Thinking..." later
+  }
+
+  function clearChat() {
+    const w = document.getElementById('chatWindow');
+    w.innerHTML = '';
+  }
+
+  function setStatus(msg, type) {
+    const el = document.getElementById('uploadStatus');
+    el.textContent = msg;
+    el.className = `status ${type}`;
+  }
+
+  function setUploadDisabled(val) {
+    document.getElementById('uploadBtn').disabled = val;
+    document.getElementById('docUrl').disabled = val;
+  }
+
+  function enableChat() {
+    document.getElementById('userInput').disabled = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('userInput').focus();
+  }
+
+  function setSendDisabled(val) {
+    document.getElementById('sendBtn').disabled = val;
+    document.getElementById('userInput').disabled = val;
+  }
+</script>
+</body>
+</html>
