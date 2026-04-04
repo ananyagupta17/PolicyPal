@@ -1,17 +1,15 @@
 import os
 import hashlib
 from typing import List, Dict
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 from app.services.retrieval import semantic_search
 from app.utils.prompt_builder import build_chat_prompt
 
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-# We use gemini-1.5-flash — fast, free tier, great for QA
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 def answer_question(
@@ -22,16 +20,13 @@ def answer_question(
     session_id: str = None,
 ) -> str:
     """
-    Given a document URL, a user question, and the conversation
-    history so far, retrieve relevant chunks and ask Gemini to answer.
-
-    Chat history gives Gemini memory — it can handle follow-up questions
-    like "what about for senior citizens?" without losing context.
+    Given a session_id, a user question, and conversation history,
+    retrieve relevant chunks from Pinecone and ask Gemini to answer.
+    Chat history gives Gemini memory for follow-up questions.
     """
-    # Use session_id directly if provided, otherwise compute from URL
     source_id = session_id if session_id else hashlib.md5(document_url.encode()).hexdigest()
 
-    # 2. Retrieve the most relevant chunks for this question
+    # Retrieve most relevant chunks for this question
     context_chunks = semantic_search(
         question,
         top_k=top_k,
@@ -39,16 +34,19 @@ def answer_question(
         fltr={"source": {"$eq": source_id}},
     )
 
-    # 3. Build the prompt — context + chat history + new question
+    # Build prompt with context + history + question
     prompt = build_chat_prompt(
         context_chunks=context_chunks,
         chat_history=chat_history,
         question=question,
     )
 
-    # 4. Call Gemini and get the answer
+    # Call Gemini
     try:
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
         return response.text.strip()
     except Exception as e:
         return f"Sorry, I couldn't generate an answer. Error: {str(e)}"

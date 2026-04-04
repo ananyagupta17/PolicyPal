@@ -3,7 +3,7 @@ fastapi==0.116.1
 uvicorn==0.35.0
 
 # Gemini API (embeddings + LLM)
-google-generativeai==0.8.3
+google-genai==1.16.0
 
 # Vector database
 pinecone==7.3.0
